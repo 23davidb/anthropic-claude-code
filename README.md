@@ -4,7 +4,7 @@ Einfaches Rechnungsprogramm, das komplett im Browser läuft. Es braucht keine In
 
 ## Starten
 
-`index.html` im Browser öffnen (Doppelklick). Der Ordner `vendor/` muss daneben liegen.
+`index.html` im Browser öffnen (Doppelklick). Die Ordner `vendor/` und `assets/` müssen daneben liegen. Am einfachsten lädst du das ganze Repository als ZIP herunter und entpackst es.
 
 ## Funktionen
 
