@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rechnungstool</title>
+<script src="vendor/html2pdf.bundle.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #fff; --text: #1d2330; --muted: #6b7280;
+    --line: #e2e5ea; --accent: #2554c7; --accent-2: #1b3f99; --danger: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 0 16px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 14px 0; }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button { background: none; border: 0; padding: 16px 12px; font: inherit; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  main { padding: 16px; max-width: 1400px; margin: 0 auto; }
+  .view { display: none; }
+  .view.active { display: block; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: #fff; color: var(--text); }
+  textarea { resize: vertical; min-height: 60px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 30%, transparent); border-color: var(--accent); }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .field { min-width: 0; }
+  .span2 { grid-column: span 2; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button.btn { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line); background: #fff; font: inherit; cursor: pointer; color: var(--text); }
+  button.btn:hover { background: #f0f2f5; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-2); }
+  button.danger { color: var(--danger); }
+  button.small { padding: 4px 8px; font-size: 12px; }
+  table.list { width: 100%; border-collapse: collapse; }
+  table.list th, table.list td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.list th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  table.list td.num, table.list th.num { text-align: right; }
+  .muted { color: var(--muted); }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--text); }
+  .check input { width: auto; }
+
+  /* Editor layout */
+  .editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 1100px) { .editor { grid-template-columns: 1fr; } }
+  .items { width: 100%; border-collapse: collapse; }
+  .items th { font-size: 12px; color: var(--muted); text-align: left; padding: 4px; font-weight: 600; }
+  .items td { padding: 4px; vertical-align: top; }
+  .items td.pos { width: 28px; color: var(--muted); padding-top: 11px; }
+  .items .qty { width: 70px; } .items .unit { width: 80px; } .items .price { width: 100px; }
+  .items .sum { width: 90px; text-align: right; padding-top: 11px; white-space: nowrap; }
+  .items input { text-align: left; }
+  .items .qty input, .items .price input { text-align: right; }
+  @media (max-width: 640px) {
+    .items thead { display: none; }
+    .items tr { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; border-bottom: 1px solid var(--line); padding: 6px 0; }
+    .items td { width: auto !important; }
+    .items td.pos { display: none; }
+    .items td.desc { grid-column: 1 / -1; }
+    .span2 { grid-column: auto; }
+  }
+
+  /* Preview */
+  .preview-wrap { position: sticky; top: 16px; overflow: auto; background: #d9dce1; border-radius: 8px; padding: 16px; }
+  .preview-scale { transform-origin: top left; }
+
+  /* ===== Invoice document (A4). Dieses Layout wird an die Vorlage angepasst. ===== */
+  .invoice { width: 210mm; min-height: 296mm; background: #fff; color: #111; padding: 18mm 18mm 22mm 20mm; font: 10pt/1.45 "Helvetica Neue", Arial, sans-serif; position: relative; }
+  .invoice .inv-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10mm; }
+  .invoice .inv-logo img { max-height: 22mm; max-width: 70mm; }
+  .invoice .inv-company { text-align: right; font-size: 9pt; color: #333; white-space: pre-line; }
+  .invoice .inv-company strong { font-size: 11pt; color: #111; }
+  .invoice .inv-sender { font-size: 7.5pt; color: #666; border-bottom: 0.5pt solid #999; display: inline-block; margin-top: 16mm; padding-bottom: 1mm; }
+  .invoice .inv-addr-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10mm; }
+  .invoice .inv-recipient { margin-top: 3mm; white-space: pre-line; min-height: 30mm; }
+  .invoice .inv-meta { margin-top: 16mm; font-size: 9pt; border-collapse: collapse; }
+  .invoice .inv-meta td { padding: 0.6mm 0; }
+  .invoice .inv-meta td:first-child { color: #555; padding-right: 6mm; }
+  .invoice .inv-meta td:last-child { text-align: right; }
+  .invoice h1 { font-size: 17pt; margin: 12mm 0 5mm; font-weight: 700; }
+  .invoice .inv-intro { margin-bottom: 6mm; white-space: pre-line; }
+  .invoice table.inv-items { width: 100%; border-collapse: collapse; }
+  .invoice table.inv-items th { text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: #444; border-bottom: 1pt solid #111; padding: 2mm 1.5mm; }
+  .invoice table.inv-items td { padding: 2.2mm 1.5mm; border-bottom: 0.5pt solid #ccc; vertical-align: top; }
+  .invoice table.inv-items tr { page-break-inside: avoid; }
+  .invoice .r, .invoice table.inv-items th.r { text-align: right; white-space: nowrap; }
+  .invoice .desc-text { white-space: pre-line; }
+  .invoice table.inv-totals { margin-left: auto; margin-top: 4mm; border-collapse: collapse; min-width: 75mm; }
+  .invoice table.inv-totals td { padding: 1.2mm 1.5mm; }
+  .invoice table.inv-totals tr.grand td { border-top: 1pt solid #111; font-weight: 700; font-size: 11pt; padding-top: 2mm; }
+  .invoice .inv-notes { margin-top: 10mm; white-space: pre-line; }
+  .invoice .inv-footer { position: absolute; left: 20mm; right: 18mm; bottom: 10mm; font-size: 7.5pt; color: #555; border-top: 0.5pt solid #bbb; padding-top: 2mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; white-space: pre-line; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 10px 16px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; }
+
+  @media print {
+    @page { size: A4; margin: 0; }
+    body { background: #fff; }
+    header, .no-print, .editor > .forms, .view:not(#view-invoice) { display: none !important; }
+    main { padding: 0; }
+    .editor { display: block; }
+    .preview-wrap { position: static; padding: 0; background: none; overflow: visible; }
+    .preview-scale { transform: none !important; height: auto !important; }
+  }
+</style>
+</head>
+<body>
+<header class="no-print">
+  <h1>Rechnungstool</h1>
+  <nav>
+    <button data-view="invoice" class="active">Rechnung</button>
+    <button data-view="customers">Kunden</button>
+    <button data-view="archive">Rechnungen</button>
+    <button data-view="settings">Einstellungen</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ===== Rechnung erstellen ===== -->
+  <section id="view-invoice" class="view active">
+    <div class="editor">
+      <div class="forms">
+        <div class="card">
+          <h2>Kunde</h2>
+          <div class="grid">
+            <div class="field span2">
+              <label for="inv-customer">Gespeicherter Kunde</label>
+              <select id="inv-customer"></select>
+            </div>
+          </div>
+          <div class="field" style="margin-top:12px">
+            <label for="inv-address">Rechnungsadresse</label>
+            <textarea id="inv-address" rows="4" placeholder="Firma / Name&#10;Straße Nr.&#10;PLZ Ort&#10;Land"></textarea>
+          </div>
+          <div class="grid" style="margin-top:12px">
+            <div class="field"><label for="inv-customer-uid">UID des Kunden (optional)</label><input id="inv-customer-uid"></div>
+            <div class="field"><label for="inv-customer-no">Kundennummer (optional)</label><input id="inv-customer-no"></div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn small" id="btn-save-customer">Als neuen Kunden speichern</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Rechnungsdaten</h2>
+          <div class="grid">
+            <div class="field"><label for="inv-number">Rechnungsnummer</label><input id="inv-number"></div>
+            <div class="field"><label for="inv-date">Rechnungsdatum</label><input id="inv-date" type="date"></div>
+            <div class="field"><label for="inv-service">Leistungsdatum / -zeitraum</label><input id="inv-service" placeholder="z. B. September 2026"></div>
+            <div class="field"><label for="inv-due">Zahlungsziel (Tage)</label><input id="inv-due" type="number" min="0"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Positionen</h2>
+          <table class="items">
+            <thead><tr><th></th><th>Beschreibung</th><th>Menge</th><th>Einheit</th><th>Preis (netto)</th><th style="text-align:right">Summe</th><th></th></tr></thead>
+            <tbody id="items-body"></tbody>
+          </table>
+          <div class="row" style="margin-top:8px">
+            <button class="btn small" id="btn-add-item">+ Position</button>
+          </div>
+          <div class="grid" style="margin-top:16px">
+            <div class="field"><label for="inv-tax">USt-Satz (%)</label><input id="inv-tax" type="number" min="0" step="0.1"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Texte</h2>
+          <div class="field"><label for="inv-intro">Einleitung</label><textarea id="inv-intro" rows="2"></textarea></div>
+          <div class="field" style="margin-top:12px"><label for="inv-notes">Schlusstext</label><textarea id="inv-notes" rows="3"></textarea></div>
+        </div>
+
+        <div class="card row no-print">
+          <button class="btn primary" id="btn-pdf">PDF erstellen</button>
+          <button class="btn" id="btn-save-invoice">Nur speichern</button>
+          <button class="btn" id="btn-print">Drucken</button>
+          <button class="btn" id="btn-new-invoice">Neue Rechnung</button>
+        </div>
+      </div>
+
+      <div class="preview-wrap">
+        <div class="preview-scale" id="preview-scale">
+          <div class="invoice" id="invoice-doc"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Kunden ===== -->
+  <section id="view-customers" class="view">
+    <div class="card">
+      <h2 id="customer-form-title">Neuer Kunde</h2>
+      <form id="customer-form">
+        <input type="hidden" id="c-id">
+        <div class="grid">
+          <div class="field"><label for="c-name">Firma / Name *</label><input id="c-name" required></div>
+          <div class="field"><label for="c-contact">Ansprechperson</label><input id="c-contact"></div>
+          <div class="field"><label for="c-street">Straße, Nr.</label><input id="c-street"></div>
+          <div class="field"><label for="c-zip">PLZ</label><input id="c-zip"></div>
+          <div class="field"><label for="c-city">Ort</label><input id="c-city"></div>
+          <div class="field"><label for="c-country">Land</label><input id="c-country"></div>
+          <div class="field"><label for="c-uid">UID-Nummer</label><input id="c-uid"></div>
+          <div class="field"><label for="c-no">Kundennummer</label><input id="c-no"></div>
+          <div class="field"><label for="c-email">E-Mail</label><input id="c-email" type="email"></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" type="submit">Speichern</button>
+          <button class="btn" type="button" id="c-cancel">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Gespeicherte Kunden</h2>
+      <input id="c-search" placeholder="Suchen…" style="max-width:300px;margin-bottom:8px">
+      <div style="overflow-x:auto"><table class="list" id="customer-table"></table></div>
+    </div>
+  </section>
+
+  <!-- ===== Archiv ===== -->
+  <section id="view-archive" class="view">
+    <div class="card">
+      <h2>Erstellte Rechnungen</h2>
+      <div style="overflow-x:auto"><table class="list" id="archive-table"></table></div>
+    </div>
+  </section>
+
+  <!-- ===== Einstellungen ===== -->
+  <section id="view-settings" class="view">
+    <form id="settings-form">
+      <div class="card">
+        <h2>Meine Firma</h2>
+        <div class="grid">
+          <div class="field"><label for="s-company">Firma / Name</label><input id="s-company"></div>
+          <div class="field"><label for="s-owner">Inhaber:in</label><input id="s-owner"></div>
+          <div class="field"><label for="s-street">Straße, Nr.</label><input id="s-street"></div>
+          <div class="field"><label for="s-zip">PLZ</label><input id="s-zip"></div>
+          <div class="field"><label for="s-city">Ort</label><input id="s-city"></div>
+          <div class="field"><label for="s-country">Land</label><input id="s-country"></div>
+          <div class="field"><label for="s-phone">Telefon</label><input id="s-phone"></div>
+          <div class="field"><label for="s-email">E-Mail</label><input id="s-email"></div>
+          <div class="field"><label for="s-web">Website</label><input id="s-web"></div>
+          <div class="field"><label for="s-uid">UID-Nummer</label><input id="s-uid"></div>
+          <div class="field"><label for="s-taxno">Steuernummer</label><input id="s-taxno"></div>
+          <div class="field"><label for="s-register">Firmenbuch / Gericht</label><input id="s-register"></div>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label for="s-logo">Logo (optional)</label>
+          <div class="row"><input id="s-logo" type="file" accept="image/*" style="max-width:320px"><button class="btn small" type="button" id="s-logo-clear">Logo entfernen</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Bankverbindung</h2>
+        <div class="grid">
+          <div class="field"><label for="s-bank">Bank</label><input id="s-bank"></div>
+          <div class="field"><label for="s-iban">IBAN</label><input id="s-iban"></div>
+          <div class="field"><label for="s-bic">BIC</label><input id="s-bic"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Standardwerte</h2>
+        <div class="grid">
+          <div class="field"><label for="s-prefix">Rechnungsnummer-Präfix</label><input id="s-prefix" placeholder="z. B. RE-"></div>
+          <div class="field"><label for="s-next">Nächste laufende Nummer</label><input id="s-next" type="number" min="1"></div>
+          <div class="field"><label for="s-tax">USt-Satz (%)</label><input id="s-tax" type="number" min="0" step="0.1"></div>
+          <div class="field"><label for="s-due">Zahlungsziel (Tage)</label><input id="s-due" type="number" min="0"></div>
+          <div class="field"><label for="s-currency">Währung</label><input id="s-currency"></div>
+        </div>
+        <label class="check" style="margin-top:12px"><input type="checkbox" id="s-small"> Kleinunternehmer:in (keine USt, Hinweis wird auf Rechnung gedruckt)</label>
+        <div class="field" style="margin-top:12px"><label for="s-small-note">Hinweis Kleinunternehmerregelung</label><input id="s-small-note"></div>
+        <div class="field" style="margin-top:12px"><label for="s-intro">Standard-Einleitung</label><textarea id="s-intro" rows="2"></textarea></div>
+        <div class="field" style="margin-top:12px"><label for="s-notes">Standard-Schlusstext</label><textarea id="s-notes" rows="3"></textarea></div>
+        <p class="muted" style="margin:8px 0 0">Platzhalter in Texten: <code>{faellig}</code> = Fälligkeitsdatum, <code>{tage}</code> = Zahlungsziel in Tagen, <code>{nummer}</code> = Rechnungsnummer.</p>
+      </div>
+      <div class="card row">
+        <button class="btn primary" type="submit">Einstellungen speichern</button>
+      </div>
+    </form>
+    <div class="card">
+      <h2>Datensicherung</h2>
+      <p class="muted" style="margin-top:0">Alle Daten werden nur lokal in diesem Browser gespeichert. Mach regelmäßig ein Backup, besonders bevor du Browserdaten löschst oder den Computer wechselst.</p>
+      <div class="row">
+        <button class="btn" id="btn-export">Backup herunterladen</button>
+        <label class="btn" style="margin:0;color:var(--text);font-size:14px">Backup einspielen<input type="file" id="btn-import" accept="application/json" hidden></label>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+  const STORE_KEY = 'rechnungstool.v1';
+  const $ = (id) => document.getElementById(id);
+
+  const defaultSettings = {
+    company: '', owner: '', street: '', zip: '', city: '', country: 'Österreich',
+    phone: '', email: '', web: '', uid: '', taxno: '', register: '',
+    bank: '', iban: '', bic: '', logo: '',
+    prefix: 'RE-', next: 1, tax: 20, due: 14, currency: 'EUR',
+    small: false,
+    smallNote: 'Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung gem. § 6 Abs. 1 Z 27 UStG.',
+    intro: 'Vielen Dank für Ihren Auftrag. Ich erlaube mir, folgende Leistungen in Rechnung zu stellen:',
+    notes: 'Bitte überweisen Sie den Rechnungsbetrag bis {faellig} unter Angabe der Rechnungsnummer {nummer} auf das unten angeführte Konto.\n\nMit freundlichen Grüßen',
+  };
+
+  // ---------- Storage ----------
+  function load() {
+    let data = null;
+    try { data = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { /* ignore */ }
+    data = data || {};
+    return {
+      settings: Object.assign({}, defaultSettings, data.settings || {}),
+      customers: data.customers || [],
+      invoices: data.invoices || [],
+    };
+  }
+  let db = load();
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+    catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); }
+  }
+
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
+  const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+  const money = (n) => new Intl.NumberFormat('de-AT', { style: 'currency', currency: db.settings.currency || 'EUR' }).format(n);
+  const qtyFmt = (n) => new Intl.NumberFormat('de-AT', { maximumFractionDigits: 3 }).format(n);
+  const dateFmt = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; };
+  const todayIso = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const addDays = (iso, days) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
+
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ---------- Navigation ----------
+  document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view)));
+  function showView(name) {
+    document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('active', b.dataset.view === name));
+    document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + name));
+    if (name === 'customers') renderCustomers();
+    if (name === 'archive') renderArchive();
+    if (name === 'settings') fillSettingsForm();
+    if (name === 'invoice') { renderCustomerSelect(); renderPreview(); }
+  }
+
+  // ---------- Customers ----------
+  function customerAddress(c) {
+    return [c.name, c.contact, c.street, [c.zip, c.city].filter(Boolean).join(' '), c.country && c.country !== db.settings.country ? c.country : '']
+      .filter(Boolean).join('\n');
+  }
+  const cFields = ['name', 'contact', 'street', 'zip', 'city', 'country', 'uid', 'no', 'email'];
+
+  function resetCustomerForm() {
+    $('c-id').value = '';
+    cFields.forEach((f) => ($('c-' + f).value = ''));
+    $('c-country').value = db.settings.country;
+    $('customer-form-title').textContent = 'Neuer Kunde';
+  }
+  $('customer-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = $('c-id').value;
+    const c = id ? db.customers.find((x) => x.id === id) : { id: uid() };
+    cFields.forEach((f) => (c[f] = $('c-' + f).value.trim()));
+    if (!id) db.customers.push(c);
+    persist(); resetCustomerForm(); renderCustomers(); renderCustomerSelect();
+    toast('Kunde gespeichert');
+  });
+  $('c-cancel').addEventListener('click', resetCustomerForm);
+  $('c-search').addEventListener('input', renderCustomers);
+
+  function renderCustomers() {
+    const q = $('c-search').value.trim().toLowerCase();
+    const list = db.customers
+      .filter((c) => !q || cFields.some((f) => (c[f] || '').toLowerCase().includes(q)))
+      .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    $('customer-table').innerHTML = list.length
+      ? '<tr><th>Name</th><th>Adresse</th><th>UID</th><th></th></tr>' + list.map((c) => `
+        <tr>
+          <td><strong>${esc(c.name)}</strong>${c.contact ? '<br><span class="muted">' + esc(c.contact) + '</span>' : ''}</td>
+          <td>${esc([c.street, [c.zip, c.city].filter(Boolean).join(' '), c.country].filter(Boolean).join(', '))}</td>
+          <td>${esc(c.uid)}</td>
+          <td class="num" style="white-space:nowrap">
+            <button class="btn small primary" data-act="invoice" data-id="${c.id}">Rechnung</button>
+            <button class="btn small" data-act="edit" data-id="${c.id}">Bearbeiten</button>
+            <button class="btn small danger" data-act="del" data-id="${c.id}">Löschen</button>
+          </td>
+        </tr>`).join('')
+      : '<tr><td class="muted">Noch keine Kunden gespeichert.</td></tr>';
+  }
+  $('customer-table').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const c = db.customers.find((x) => x.id === b.dataset.id); if (!c) return;
+    if (b.dataset.act === 'edit') {
+      $('c-id').value = c.id;
+      cFields.forEach((f) => ($('c-' + f).value = c[f] || ''));
+      $('customer-form-title').textContent = 'Kunde bearbeiten';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (b.dataset.act === 'del') {
+      if (confirm(`Kunde „${c.name}“ wirklich löschen?`)) {
+        db.customers = db.customers.filter((x) => x.id !== c.id); persist(); renderCustomers();
+      }
+    } else if (b.dataset.act === 'invoice') {
+      newInvoice(); showView('invoice'); selectCustomer(c.id);
+    }
+  });
+
+  function renderCustomerSelect() {
+    const sel = $('inv-customer');
+    const cur = current.customerId || '';
+    sel.innerHTML = '<option value="">– Kunde auswählen oder Adresse manuell eingeben –</option>' +
+      [...db.customers].sort((a, b) => a.name.localeCompare(b.name, 'de'))
+        .map((c) => `<option value="${c.id}">${esc(c.name)}${c.city ? ' – ' + esc(c.city) : ''}</option>`).join('');
+    sel.value = db.customers.some((c) => c.id === cur) ? cur : '';
+  }
+  function selectCustomer(id) {
+    const c = db.customers.find((x) => x.id === id);
+    current.customerId = c ? c.id : '';
+    if (c) {
+      current.address = customerAddress(c);
+      current.customerUid = c.uid || '';
+      current.customerNo = c.no || '';
+    }
+    $('inv-customer').value = current.customerId;
+    fillInvoiceForm(); renderPreview();
+  }
+  $('inv-customer').addEventListener('change', (e) => selectCustomer(e.target.value));
+
+  $('btn-save-customer').addEventListener('click', () => {
+    const lines = $('inv-address').value.split('\n').map((s) => s.trim()).filter(Boolean);
+    if (!lines.length) return toast('Bitte zuerst eine Adresse eingeben');
+    const c = { id: uid(), name: lines[0], contact: '', street: '', zip: '', city: '', country: db.settings.country, uid: $('inv-customer-uid').value.trim(), no: $('inv-customer-no').value.trim(), email: '' };
+    // Heuristik: Zeile mit "PLZ Ort" erkennen
+    const zipIdx = lines.findIndex((l, i) => i > 0 && /^\d{4,5}\s+\S/.test(l));
+    if (zipIdx > 0) {
+      const m = lines[zipIdx].match(/^(\d{4,5})\s+(.+)$/); c.zip = m[1]; c.city = m[2];
+      c.street = lines[zipIdx - 1] !== lines[0] ? lines[zipIdx - 1] : '';
+      if (zipIdx - 1 > 1) c.contact = lines.slice(1, zipIdx - 1).join(', ');
+      if (lines[zipIdx + 1]) c.country = lines[zipIdx + 1];
+    } else {
+      c.street = lines.slice(1).join(', ');
+    }
+    db.customers.push(c); persist();
+    current.customerId = c.id; renderCustomerSelect();
+    toast(`„${c.name}“ gespeichert – bei Bedarf unter „Kunden“ nachbearbeiten`);
+  });
+
+  // ---------- Invoice ----------
+  let current;
+  function nextNumber() {
+    const s = db.settings;
+    return `${s.prefix || ''}${new Date().getFullYear()}-${String(s.next || 1).padStart(3, '0')}`;
+  }
+  function newInvoice() {
+    const s = db.settings;
+    current = {
+      id: null, number: nextNumber(), date: todayIso(), service: '', due: s.due,
+      customerId: '', address: '', customerUid: '', customerNo: '',
+      items: [{ desc: '', qty: 1, unit: 'Stk.', price: 0 }],
+      tax: s.small ? 0 : s.tax, intro: s.intro, notes: s.notes,
+    };
+    fillInvoiceForm(); renderCustomerSelect(); renderPreview();
+  }
+  function fillInvoiceForm() {
+    $('inv-number').value = current.number;
+    $('inv-date').value = current.date;
+    $('inv-service').value = current.service;
+    $('inv-due').value = current.due;
+    $('inv-address').value = current.address;
+    $('inv-customer-uid').value = current.customerUid;
+    $('inv-customer-no').value = current.customerNo;
+    $('inv-tax').value = current.tax;
+    $('inv-tax').disabled = db.settings.small;
+    $('inv-intro').value = current.intro;
+    $('inv-notes').value = current.notes;
+    renderItems();
+  }
+  const bind = (id, key, conv = (v) => v) => $(id).addEventListener('input', (e) => { current[key] = conv(e.target.value); renderPreview(); });
+  bind('inv-number', 'number'); bind('inv-date', 'date'); bind('inv-service', 'service');
+  bind('inv-due', 'due', (v) => parseInt(v, 10) || 0); bind('inv-address', 'address');
+  bind('inv-customer-uid', 'customerUid'); bind('inv-customer-no', 'customerNo');
+  bind('inv-tax', 'tax', num); bind('inv-intro', 'intro'); bind('inv-notes', 'notes');
+
+  function renderItems() {
+    $('items-body').innerHTML = current.items.map((it, i) => `
+      <tr data-i="${i}">
+        <td class="pos">${i + 1}</td>
+        <td class="desc"><textarea rows="1" data-k="desc" placeholder="Leistung / Artikel">${esc(it.desc)}</textarea></td>
+        <td class="qty"><input data-k="qty" inputmode="decimal" value="${esc(it.qty)}"></td>
+        <td class="unit"><input data-k="unit" value="${esc(it.unit)}"></td>
+        <td class="price"><input data-k="price" inputmode="decimal" value="${esc(it.price)}"></td>
+        <td class="sum">${money(round2(num(it.qty) * num(it.price)))}</td>
+        <td><button class="btn small danger" data-del="${i}" title="Position entfernen">✕</button></td>
+      </tr>`).join('');
+  }
+  $('items-body').addEventListener('input', (e) => {
+    const tr = e.target.closest('tr'); const k = e.target.dataset.k; if (!tr || !k) return;
+    const it = current.items[+tr.dataset.i]; it[k] = e.target.value;
+    tr.querySelector('.sum').textContent = money(round2(num(it.qty) * num(it.price)));
+    renderPreview();
+  });
+  $('items-body').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    current.items.splice(+b.dataset.del, 1);
+    if (!current.items.length) current.items.push({ desc: '', qty: 1, unit: 'Stk.', price: 0 });
+    renderItems(); renderPreview();
+  });
+  $('btn-add-item').addEventListener('click', () => {
+    current.items.push({ desc: '', qty: 1, unit: 'Stk.', price: 0 });
+    renderItems(); renderPreview();
+    const rows = $('items-body').querySelectorAll('textarea'); rows[rows.length - 1].focus();
+  });
+
+  function totals(inv) {
+    const net = round2(inv.items.reduce((s, it) => s + round2(num(it.qty) * num(it.price)), 0));
+    const rate = db.settings.small ? 0 : num(inv.tax);
+    const tax = round2(net * rate / 100);
+    return { net, rate, tax, gross: round2(net + tax) };
+  }
+  // Liefert HTML: Text wird escaped, Platzhalter werden als nicht umbrechende Spans eingesetzt
+  function fillPlaceholders(text, inv) {
+    const nb = (v) => `<span style="white-space:nowrap">${esc(v)}</span>`;
+    return esc(text)
+      .replaceAll('{faellig}', nb(dateFmt(addDays(inv.date || todayIso(), inv.due || 0))))
+      .replaceAll('{tage}', nb(String(inv.due || 0)))
+      .replaceAll('{nummer}', nb(inv.number || ''));
+  }
+
+  // ---------- Invoice document (wird an die Vorlage angepasst) ----------
+  function invoiceHtml(inv) {
+    const s = db.settings;
+    const t = totals(inv);
+    const senderLine = [s.company, s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+    const companyBlock = [s.owner && s.owner !== s.company ? s.owner : '', s.street, [s.zip, s.city].filter(Boolean).join(' '), s.country, '', s.phone && 'Tel. ' + s.phone, s.email, s.web]
+      .filter((x) => x !== undefined && x !== false && x !== null).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    const meta = [
+      ['Rechnungsnummer', inv.number],
+      ['Rechnungsdatum', dateFmt(inv.date)],
+      inv.service && ['Leistungsdatum', inv.service],
+      inv.customerNo && ['Kundennummer', inv.customerNo],
+      inv.customerUid && ['UID Kunde', inv.customerUid],
+      s.uid && ['Unsere UID', s.uid],
+    ].filter(Boolean);
+    const items = inv.items.filter((it) => String(it.desc).trim() || num(it.price));
+    return `
+      <div class="inv-head">
+        <div class="inv-logo">${s.logo ? `<img src="${s.logo}" alt="">` : `<strong style="font-size:15pt">${esc(s.company)}</strong>`}</div>
+        <div class="inv-company">${s.logo ? `<strong>${esc(s.company)}</strong>\n` : ''}${esc(companyBlock)}</div>
+      </div>
+      <div class="inv-addr-row">
+        <div>
+          <div class="inv-sender">${esc(senderLine)}</div>
+          <div class="inv-recipient">${esc(inv.address) || '<span style="color:#aaa">Rechnungsadresse</span>'}</div>
+        </div>
+        <table class="inv-meta">${meta.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>
+      </div>
+      <h1>Rechnung ${esc(inv.number)}</h1>
+      ${inv.intro ? `<div class="inv-intro">${fillPlaceholders(inv.intro, inv)}</div>` : ''}
+      <table class="inv-items">
+        <thead><tr><th style="width:8mm">Pos.</th><th>Beschreibung</th><th class="r">Menge</th><th class="r">Einzelpreis</th><th class="r">Gesamt</th></tr></thead>
+        <tbody>${items.map((it, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td class="desc-text">${esc(it.desc)}</td>
+            <td class="r">${qtyFmt(num(it.qty))} ${esc(it.unit)}</td>
+            <td class="r">${money(num(it.price))}</td>
+            <td class="r">${money(round2(num(it.qty) * num(it.price)))}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <table class="inv-totals">
+        ${s.small ? '' : `<tr><td>Summe netto</td><td class="r">${money(t.net)}</td></tr>
+        <tr><td>zzgl. ${qtyFmt(t.rate)} % USt</td><td class="r">${money(t.tax)}</td></tr>`}
+        <tr class="grand"><td>Rechnungsbetrag</td><td class="r">${money(t.gross)}</td></tr>
+      </table>
+      ${s.small ? `<div class="inv-notes">${esc(s.smallNote)}</div>` : ''}
+      ${inv.notes ? `<div class="inv-notes">${fillPlaceholders(inv.notes, inv)}</div>` : ''}
+      <div class="inv-footer">
+        <div>${esc([s.company, s.owner && s.owner !== s.company ? s.owner : '', s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join('\n'))}</div>
+        <div>${esc([s.phone && 'Tel. ' + s.phone, s.email, s.web, s.uid && 'UID: ' + s.uid, s.taxno && 'St.-Nr.: ' + s.taxno, s.register].filter(Boolean).join('\n'))}</div>
+        <div>${esc([s.bank, s.iban && 'IBAN: ' + s.iban, s.bic && 'BIC: ' + s.bic].filter(Boolean).join('\n'))}</div>
+      </div>`;
+  }
+
+  function renderPreview() {
+    $('invoice-doc').innerHTML = invoiceHtml(current);
+    fitPreview();
+  }
+  function fitPreview() {
+    const wrap = document.querySelector('.preview-wrap'); const scale = $('preview-scale'); const doc = $('invoice-doc');
+    const avail = wrap.clientWidth - 32; const w = doc.offsetWidth;
+    const f = Math.min(1, avail / w);
+    scale.style.transform = `scale(${f})`;
+    scale.style.height = doc.offsetHeight * f + 'px';
+    scale.style.width = w * f + 'px';
+  }
+  window.addEventListener('resize', fitPreview);
+
+  function saveInvoice() {
+    if (!current.number.trim()) { toast('Bitte eine Rechnungsnummer angeben'); return false; }
+    const dup = db.invoices.find((x) => x.number === current.number && x.id !== current.id);
+    if (dup && !confirm(`Die Rechnungsnummer ${current.number} existiert bereits. Trotzdem speichern?`)) return false;
+    const t = totals(current);
+    const record = JSON.parse(JSON.stringify(current));
+    record.total = t.gross;
+    record.small = db.settings.small;
+    if (!record.id) {
+      record.id = uid(); record.created = new Date().toISOString();
+      db.invoices.push(record);
+      // Laufende Nummer weiterzählen, wenn die vorgeschlagene Nummer verwendet wurde
+      if (current.number === nextNumber()) db.settings.next = (db.settings.next || 1) + 1;
+    } else {
+      const i = db.invoices.findIndex((x) => x.id === record.id);
+      db.invoices[i] = Object.assign(db.invoices[i], record);
+    }
+    current.id = record.id;
+    persist();
+    return true;
+  }
+  $('btn-save-invoice').addEventListener('click', () => { if (saveInvoice()) toast('Rechnung gespeichert'); });
+  $('btn-new-invoice').addEventListener('click', () => newInvoice());
+  $('btn-print').addEventListener('click', () => { renderPreview(); window.print(); });
+
+  async function downloadPdf() {
+    const el = $('invoice-doc');
+    const name = `Rechnung_${(current.number || 'ohne-Nummer').replace(/[^\w.-]+/g, '_')}.pdf`;
+    if (typeof html2pdf === 'undefined') {
+      toast('PDF-Bibliothek nicht geladen (offline?) – Druckdialog wird geöffnet');
+      window.print(); return;
+    }
+    await html2pdf().set({
+      margin: 0, filename: name,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['css', 'legacy'], avoid: 'tr' },
+    }).from(el).save();
+  }
+  $('btn-pdf').addEventListener('click', async () => {
+    if (!saveInvoice()) return;
+    renderPreview();
+    try { await downloadPdf(); toast('PDF erstellt und Rechnung gespeichert'); }
+    catch (e) { toast('PDF-Erstellung fehlgeschlagen: ' + e.message); }
+  });
+
+  // ---------- Archive ----------
+  function renderArchive() {
+    const list = [...db.invoices].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.number || '').localeCompare(a.number || ''));
+    $('archive-table').innerHTML = list.length
+      ? '<tr><th>Nr.</th><th>Datum</th><th>Kunde</th><th class="num">Betrag</th><th></th></tr>' + list.map((inv) => `
+        <tr>
+          <td>${esc(inv.number)}</td>
+          <td>${dateFmt(inv.date)}</td>
+          <td>${esc((inv.address || '').split('\n')[0])}</td>
+          <td class="num">${money(inv.total || 0)}</td>
+          <td class="num" style="white-space:nowrap">
+            <button class="btn small primary" data-act="open" data-id="${inv.id}">Öffnen</button>
+            <button class="btn small" data-act="copy" data-id="${inv.id}">Als Vorlage</button>
+            <button class="btn small danger" data-act="del" data-id="${inv.id}">Löschen</button>
+          </td>
+        </tr>`).join('')
+      : '<tr><td class="muted">Noch keine Rechnungen erstellt.</td></tr>';
+  }
+  $('archive-table').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const inv = db.invoices.find((x) => x.id === b.dataset.id); if (!inv) return;
+    if (b.dataset.act === 'open') {
+      current = JSON.parse(JSON.stringify(inv)); showView('invoice'); fillInvoiceForm();
+    } else if (b.dataset.act === 'copy') {
+      newInvoice();
+      Object.assign(current, {
+        customerId: inv.customerId, address: inv.address, customerUid: inv.customerUid, customerNo: inv.customerNo,
+        items: JSON.parse(JSON.stringify(inv.items)), intro: inv.intro, notes: inv.notes,
+      });
+      showView('invoice'); fillInvoiceForm();
+    } else if (b.dataset.act === 'del') {
+      if (confirm(`Rechnung ${inv.number} wirklich löschen?`)) {
+        db.invoices = db.invoices.filter((x) => x.id !== inv.id); persist(); renderArchive();
+      }
+    }
+  });
+
+  // ---------- Settings ----------
+  const sMap = { company: 's-company', owner: 's-owner', street: 's-street', zip: 's-zip', city: 's-city', country: 's-country',
+    phone: 's-phone', email: 's-email', web: 's-web', uid: 's-uid', taxno: 's-taxno', register: 's-register',
+    bank: 's-bank', iban: 's-iban', bic: 's-bic', prefix: 's-prefix', next: 's-next', tax: 's-tax', due: 's-due',
+    currency: 's-currency', smallNote: 's-small-note', intro: 's-intro', notes: 's-notes' };
+  let pendingLogo;
+  function fillSettingsForm() {
+    Object.entries(sMap).forEach(([k, id]) => ($(id).value = db.settings[k] ?? ''));
+    $('s-small').checked = !!db.settings.small;
+    $('s-logo').value = ''; pendingLogo = undefined;
+  }
+  $('s-logo').addEventListener('change', (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    if (f.size > 1.5 * 1024 * 1024) { toast('Logo ist zu groß (max. 1,5 MB)'); e.target.value = ''; return; }
+    const r = new FileReader(); r.onload = () => { pendingLogo = r.result; toast('Logo übernommen – bitte speichern'); }; r.readAsDataURL(f);
+  });
+  $('s-logo-clear').addEventListener('click', () => { pendingLogo = ''; $('s-logo').value = ''; toast('Logo wird beim Speichern entfernt'); });
+  $('settings-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    Object.entries(sMap).forEach(([k, id]) => (db.settings[k] = $(id).value.trim()));
+    ['next', 'due'].forEach((k) => (db.settings[k] = parseInt(db.settings[k], 10) || 0));
+    db.settings.next = Math.max(1, db.settings.next);
+    db.settings.tax = num(db.settings.tax);
+    db.settings.currency = db.settings.currency || 'EUR';
+    db.settings.small = $('s-small').checked;
+    if (pendingLogo !== undefined) db.settings.logo = pendingLogo;
+    persist();
+    // Offene, noch nicht gespeicherte Rechnung mit neuen Standards aktualisieren
+    if (!current.id) newInvoice();
+    toast('Einstellungen gespeichert');
+  });
+
+  // ---------- Backup ----------
+  $('btn-export').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `rechnungstool-backup-${todayIso()}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $('btn-import').addEventListener('change', (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const data = JSON.parse(r.result);
+        if (!data || !Array.isArray(data.customers) || !Array.isArray(data.invoices)) throw new Error('Ungültiges Format');
+        if (!confirm('Backup einspielen? Die aktuellen Daten in diesem Browser werden ersetzt.')) return;
+        db = { settings: Object.assign({}, defaultSettings, data.settings || {}), customers: data.customers, invoices: data.invoices };
+        persist(); fillSettingsForm(); newInvoice(); toast('Backup eingespielt');
+      } catch (err) { toast('Backup konnte nicht gelesen werden: ' + err.message); }
+      e.target.value = '';
+    };
+    r.readAsText(f);
+  });
+
+  // ---------- Start ----------
+  newInvoice();
+  if (!db.settings.company) {
+    showView('settings');
+    toast('Willkommen! Bitte zuerst deine Firmendaten eintragen.');
+  }
+})();
+</script>
+</body>
+</html>
