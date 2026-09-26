@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rechnungstool</title>
 <script src="vendor/html2pdf.bundle.min.js"></script>
+<script src="assets/logo.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caladea:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f4f5f7; --panel: #fff; --text: #1d2330; --muted: #6b7280;
@@ -50,7 +53,7 @@
   .items { width: 100%; border-collapse: collapse; }
   .items th { font-size: 12px; color: var(--muted); text-align: left; padding: 4px; font-weight: 600; }
   .items td { padding: 4px; vertical-align: top; }
-  .items td.pos { width: 28px; color: var(--muted); padding-top: 11px; }
+  .items td.pos { width: 52px; }
   .items .qty { width: 70px; } .items .unit { width: 80px; } .items .price { width: 100px; }
   .items .sum { width: 90px; text-align: right; padding-top: 11px; white-space: nowrap; }
   .items input { text-align: left; }
@@ -59,7 +62,7 @@
     .items thead { display: none; }
     .items tr { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; border-bottom: 1px solid var(--line); padding: 6px 0; }
     .items td { width: auto !important; }
-    .items td.pos { display: none; }
+    .items td.pos { grid-column: 1 / -1; }
     .items td.desc { grid-column: 1 / -1; }
     .span2 { grid-column: auto; }
   }
@@ -68,32 +71,44 @@
   .preview-wrap { position: sticky; top: 16px; overflow: auto; background: #d9dce1; border-radius: 8px; padding: 16px; }
   .preview-scale { transform-origin: top left; }
 
-  /* ===== Invoice document (A4). Dieses Layout wird an die Vorlage angepasst. ===== */
-  .invoice { width: 210mm; min-height: 296mm; background: #fff; color: #111; padding: 18mm 18mm 22mm 20mm; font: 10pt/1.45 "Helvetica Neue", Arial, sans-serif; position: relative; }
-  .invoice .inv-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10mm; }
-  .invoice .inv-logo img { max-height: 22mm; max-width: 70mm; }
-  .invoice .inv-company { text-align: right; font-size: 9pt; color: #333; white-space: pre-line; }
-  .invoice .inv-company strong { font-size: 11pt; color: #111; }
-  .invoice .inv-sender { font-size: 7.5pt; color: #666; border-bottom: 0.5pt solid #999; display: inline-block; margin-top: 16mm; padding-bottom: 1mm; }
-  .invoice .inv-addr-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10mm; }
-  .invoice .inv-recipient { margin-top: 3mm; white-space: pre-line; min-height: 30mm; }
-  .invoice .inv-meta { margin-top: 16mm; font-size: 9pt; border-collapse: collapse; }
-  .invoice .inv-meta td { padding: 0.6mm 0; }
-  .invoice .inv-meta td:first-child { color: #555; padding-right: 6mm; }
-  .invoice .inv-meta td:last-child { text-align: right; }
-  .invoice h1 { font-size: 17pt; margin: 12mm 0 5mm; font-weight: 700; }
-  .invoice .inv-intro { margin-bottom: 6mm; white-space: pre-line; }
-  .invoice table.inv-items { width: 100%; border-collapse: collapse; }
-  .invoice table.inv-items th { text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.04em; color: #444; border-bottom: 1pt solid #111; padding: 2mm 1.5mm; }
-  .invoice table.inv-items td { padding: 2.2mm 1.5mm; border-bottom: 0.5pt solid #ccc; vertical-align: top; }
+  /* ===== Rechnungsdokument (A4) nach Vorlage Tischlerei Bitschnau ===== */
+  .invoice { width: 210mm; min-height: 296mm; background: #fff; color: #111; padding: 16mm 11mm 38mm 18mm; font: 10.5pt/1.35 Cambria, Caladea, Georgia, "Times New Roman", serif; position: relative; }
+  .invoice .inv-head { display: flex; justify-content: space-between; align-items: flex-start; }
+  .invoice .inv-logo { width: 92mm; margin-left: 1.5mm; }
+  .invoice .inv-logo img { width: 100%; display: block; }
+  .invoice .inv-logo .noimg { font-size: 20pt; font-weight: 700; }
+  .invoice .inv-company { width: 64mm; white-space: pre-line; font-size: 10pt; line-height: 1.3; }
+  .invoice .inv-addr-row { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 22mm; min-height: 24mm; }
+  .invoice .inv-recipient { white-space: pre-line; font-size: 11pt; line-height: 1.3; padding-left: 1mm; }
+  .invoice .inv-recipient strong { font-weight: 700; }
+  .invoice .inv-meta { border-collapse: collapse; font-size: 11pt; width: 78mm; }
+  .invoice .inv-meta td { padding: 0 0 0.3mm; }
+  .invoice .inv-meta td:last-child { width: 28mm; white-space: nowrap; }
+  .invoice .inv-title { border: 0.6pt solid #111; border-left-width: 1.6pt; padding: 1.2mm 2mm 1mm; margin-top: 8mm; }
+  .invoice .inv-title strong { font-size: 14pt; }
+  .invoice .inv-title span { font-size: 12pt; }
+  .invoice .inv-period { margin: 3.5mm 0 0 1mm; }
+  .invoice .inv-intro { margin: 2mm 0 0 1mm; white-space: pre-line; }
+  .invoice table.inv-items { width: 100%; border-collapse: collapse; margin-top: 5mm; }
+  .invoice table.inv-items th { font-weight: 700; text-align: left; padding: 1mm 1mm 1.2mm; }
+  .invoice table.inv-items thead tr, .invoice table.inv-items tfoot tr.grand { background: #e3e3e3; }
+  .invoice table.inv-items td { padding: 1.6mm 1mm 1.2mm; vertical-align: top; }
   .invoice table.inv-items tr { page-break-inside: avoid; }
+  .invoice table.inv-items tbody tr:last-child td { border-bottom: 0.9pt solid #111; }
+  .invoice table.inv-items .c-pos { width: 14mm; }
+  .invoice table.inv-items .c-qty { width: 22mm; }
+  .invoice table.inv-items .c-price { width: 23mm; }
+  .invoice table.inv-items .c-total { width: 29mm; padding-right: 5mm; }
   .invoice .r, .invoice table.inv-items th.r { text-align: right; white-space: nowrap; }
   .invoice .desc-text { white-space: pre-line; }
-  .invoice table.inv-totals { margin-left: auto; margin-top: 4mm; border-collapse: collapse; min-width: 75mm; }
-  .invoice table.inv-totals td { padding: 1.2mm 1.5mm; }
-  .invoice table.inv-totals tr.grand td { border-top: 1pt solid #111; font-weight: 700; font-size: 11pt; padding-top: 2mm; }
-  .invoice .inv-notes { margin-top: 10mm; white-space: pre-line; }
-  .invoice .inv-footer { position: absolute; left: 20mm; right: 18mm; bottom: 10mm; font-size: 7.5pt; color: #555; border-top: 0.5pt solid #bbb; padding-top: 2mm; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; white-space: pre-line; }
+  .invoice table.inv-items tfoot td { padding-top: 1.2mm; padding-bottom: 0.4mm; }
+  .invoice table.inv-items tfoot .u { text-decoration: underline; }
+  .invoice table.inv-items tfoot tr.grand td { font-weight: 700; padding-top: 1mm; padding-bottom: 1.2mm; }
+  .invoice table.inv-items tfoot tr.gap td { padding: 0.8mm; }
+  .invoice .inv-notes { margin: 8mm 0 0 1mm; white-space: pre-line; }
+  .invoice .inv-footer { position: absolute; left: 16mm; right: 11mm; bottom: 12mm; font-size: 9pt; line-height: 1.3; display: grid; grid-template-columns: 75.5mm 69mm 1fr; white-space: pre-line; }
+  .invoice .inv-footer .bank { display: grid; grid-template-columns: auto 1fr; column-gap: 2.5mm; }
+  .invoice .inv-footer .bank div:first-child { grid-column: 1 / -1; }
 
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 10px 16px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
   .toast.show { opacity: 1; }
@@ -123,6 +138,10 @@
 <main>
   <!-- ===== Rechnung erstellen ===== -->
   <section id="view-invoice" class="view active">
+    <datalist id="title-options">
+      <option value="Rechnung"><option value="Anzahlungsrechnung"><option value="Teilrechnung I"><option value="Teilrechnung II">
+      <option value="Teilrechnung III"><option value="Teilrechnung IV"><option value="Schlussrechnung">
+    </datalist>
     <div class="editor">
       <div class="forms">
         <div class="card">
@@ -149,9 +168,11 @@
         <div class="card">
           <h2>Rechnungsdaten</h2>
           <div class="grid">
+            <div class="field"><label for="inv-title">Rechnungsart</label><input id="inv-title" list="title-options"></div>
+            <div class="field"><label for="inv-subject">Betreff</label><input id="inv-subject" placeholder="z. B. Möbeltischlerarbeiten"></div>
             <div class="field"><label for="inv-number">Rechnungsnummer</label><input id="inv-number"></div>
             <div class="field"><label for="inv-date">Rechnungsdatum</label><input id="inv-date" type="date"></div>
-            <div class="field"><label for="inv-service">Leistungsdatum / -zeitraum</label><input id="inv-service" placeholder="z. B. September 2026"></div>
+            <div class="field"><label for="inv-service">Leistungszeitraum</label><input id="inv-service" placeholder="z. B. Juni – Juli 2026"></div>
             <div class="field"><label for="inv-due">Zahlungsziel (Tage)</label><input id="inv-due" type="number" min="0"></div>
           </div>
         </div>
@@ -159,12 +180,13 @@
         <div class="card">
           <h2>Positionen</h2>
           <table class="items">
-            <thead><tr><th></th><th>Beschreibung</th><th>Menge</th><th>Einheit</th><th>Preis (netto)</th><th style="text-align:right">Summe</th><th></th></tr></thead>
+            <thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>E. Preis (netto)</th><th style="text-align:right">Gesamt</th><th></th></tr></thead>
             <tbody id="items-body"></tbody>
           </table>
           <div class="row" style="margin-top:8px">
             <button class="btn small" id="btn-add-item">+ Position</button>
           </div>
+          <p class="muted" style="margin:8px 0 0;font-size:12px">Pos. leer lassen = automatisch nummeriert. Pauschalbeträge (z. B. Anzahlung): Menge 1 und Einheit leer, dann erscheinen Menge und E. Preis nicht auf der Rechnung.</p>
           <div class="grid" style="margin-top:16px">
             <div class="field"><label for="inv-tax">USt-Satz (%)</label><input id="inv-tax" type="number" min="0" step="0.1"></div>
           </div>
@@ -237,7 +259,7 @@
         <h2>Meine Firma</h2>
         <div class="grid">
           <div class="field"><label for="s-company">Firma / Name</label><input id="s-company"></div>
-          <div class="field"><label for="s-owner">Inhaber:in</label><input id="s-owner"></div>
+          <div class="field"><label for="s-owner">Inhaber:in (optional)</label><input id="s-owner"></div>
           <div class="field"><label for="s-street">Straße, Nr.</label><input id="s-street"></div>
           <div class="field"><label for="s-zip">PLZ</label><input id="s-zip"></div>
           <div class="field"><label for="s-city">Ort</label><input id="s-city"></div>
@@ -265,8 +287,8 @@
       <div class="card">
         <h2>Standardwerte</h2>
         <div class="grid">
-          <div class="field"><label for="s-prefix">Rechnungsnummer-Präfix</label><input id="s-prefix" placeholder="z. B. RE-"></div>
-          <div class="field"><label for="s-next">Nächste laufende Nummer</label><input id="s-next" type="number" min="1"></div>
+          <div class="field"><label for="s-prefix">Rechnungsnummer-Präfix (optional)</label><input id="s-prefix"></div>
+          <div class="field"><label for="s-next">Nächste laufende Nummer (z. B. 37 → 202637)</label><input id="s-next" type="number" min="1"></div>
           <div class="field"><label for="s-tax">USt-Satz (%)</label><input id="s-tax" type="number" min="0" step="0.1"></div>
           <div class="field"><label for="s-due">Zahlungsziel (Tage)</label><input id="s-due" type="number" min="0"></div>
           <div class="field"><label for="s-currency">Währung</label><input id="s-currency"></div>
@@ -301,14 +323,16 @@
   const $ = (id) => document.getElementById(id);
 
   const defaultSettings = {
-    company: '', owner: '', street: '', zip: '', city: '', country: 'Österreich',
-    phone: '', email: '', web: '', uid: '', taxno: '', register: '',
-    bank: '', iban: '', bic: '', logo: '',
-    prefix: 'RE-', next: 1, tax: 20, due: 14, currency: 'EUR',
+    company: 'Tischlerei Kurt Bitschnau', owner: '', street: 'Almastraße 11', zip: '6773', city: 'Vandans', country: 'Österreich',
+    phone: '+43 5556 72704', email: 'tischlerei.bitschnau@aon.at', web: '', uid: 'ATU 39162008', taxno: '', register: '',
+    bank: 'Raiffeisenbank Bludenz-Montafon', iban: '', bic: '',
+    logo: window.DEFAULT_LOGO || '',
+    prefix: '', next: 1, tax: 20, due: 14, currency: 'EUR',
+    title: 'Rechnung',
     small: false,
     smallNote: 'Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung gem. § 6 Abs. 1 Z 27 UStG.',
-    intro: 'Vielen Dank für Ihren Auftrag. Ich erlaube mir, folgende Leistungen in Rechnung zu stellen:',
-    notes: 'Bitte überweisen Sie den Rechnungsbetrag bis {faellig} unter Angabe der Rechnungsnummer {nummer} auf das unten angeführte Konto.\n\nMit freundlichen Grüßen',
+    intro: 'Wir stellen Ihnen hiermit folgende Leistungen in Rechnung:',
+    notes: '',
   };
 
   // ---------- Storage ----------
@@ -332,8 +356,8 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : 0; };
   const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
-  const money = (n) => new Intl.NumberFormat('de-AT', { style: 'currency', currency: db.settings.currency || 'EUR' }).format(n);
-  const qtyFmt = (n) => new Intl.NumberFormat('de-AT', { maximumFractionDigits: 3 }).format(n);
+  const money = (n) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: db.settings.currency || 'EUR' }).format(n);
+  const qtyFmt = (n) => new Intl.NumberFormat('de-DE', { maximumFractionDigits: 3 }).format(n);
   const dateFmt = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; };
   const todayIso = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
   const addDays = (iso, days) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
@@ -459,19 +483,22 @@
   let current;
   function nextNumber() {
     const s = db.settings;
-    return `${s.prefix || ''}${new Date().getFullYear()}-${String(s.next || 1).padStart(3, '0')}`;
+    return `${s.prefix || ''}${new Date().getFullYear()}${String(s.next || 1).padStart(2, '0')}`;
   }
   function newInvoice() {
     const s = db.settings;
     current = {
       id: null, number: nextNumber(), date: todayIso(), service: '', due: s.due,
+      title: s.title || 'Rechnung', subject: '',
       customerId: '', address: '', customerUid: '', customerNo: '',
-      items: [{ desc: '', qty: 1, unit: 'Stk.', price: 0 }],
+      items: [{ pos: '', desc: '', qty: 1, unit: 'Stk.', price: 0 }],
       tax: s.small ? 0 : s.tax, intro: s.intro, notes: s.notes,
     };
     fillInvoiceForm(); renderCustomerSelect(); renderPreview();
   }
   function fillInvoiceForm() {
+    $('inv-title').value = current.title || '';
+    $('inv-subject').value = current.subject || '';
     $('inv-number').value = current.number;
     $('inv-date').value = current.date;
     $('inv-service').value = current.service;
@@ -486,6 +513,7 @@
     renderItems();
   }
   const bind = (id, key, conv = (v) => v) => $(id).addEventListener('input', (e) => { current[key] = conv(e.target.value); renderPreview(); });
+  bind('inv-title', 'title'); bind('inv-subject', 'subject');
   bind('inv-number', 'number'); bind('inv-date', 'date'); bind('inv-service', 'service');
   bind('inv-due', 'due', (v) => parseInt(v, 10) || 0); bind('inv-address', 'address');
   bind('inv-customer-uid', 'customerUid'); bind('inv-customer-no', 'customerNo');
@@ -494,8 +522,8 @@
   function renderItems() {
     $('items-body').innerHTML = current.items.map((it, i) => `
       <tr data-i="${i}">
-        <td class="pos">${i + 1}</td>
-        <td class="desc"><textarea rows="1" data-k="desc" placeholder="Leistung / Artikel">${esc(it.desc)}</textarea></td>
+        <td class="pos"><input data-k="pos" value="${esc(it.pos || '')}" placeholder="${i + 1}."></td>
+        <td class="desc"><textarea rows="1" data-k="desc" placeholder="Bezeichnung">${esc(it.desc)}</textarea></td>
         <td class="qty"><input data-k="qty" inputmode="decimal" value="${esc(it.qty)}"></td>
         <td class="unit"><input data-k="unit" value="${esc(it.unit)}"></td>
         <td class="price"><input data-k="price" inputmode="decimal" value="${esc(it.price)}"></td>
@@ -512,11 +540,11 @@
   $('items-body').addEventListener('click', (e) => {
     const b = e.target.closest('[data-del]'); if (!b) return;
     current.items.splice(+b.dataset.del, 1);
-    if (!current.items.length) current.items.push({ desc: '', qty: 1, unit: 'Stk.', price: 0 });
+    if (!current.items.length) current.items.push({ pos: '', desc: '', qty: 1, unit: 'Stk.', price: 0 });
     renderItems(); renderPreview();
   });
   $('btn-add-item').addEventListener('click', () => {
-    current.items.push({ desc: '', qty: 1, unit: 'Stk.', price: 0 });
+    current.items.push({ pos: '', desc: '', qty: 1, unit: 'Stk.', price: 0 });
     renderItems(); renderPreview();
     const rows = $('items-body').querySelectorAll('textarea'); rows[rows.length - 1].focus();
   });
@@ -537,58 +565,67 @@
   }
 
   // ---------- Invoice document (wird an die Vorlage angepasst) ----------
+  // Beträge wie in der Vorlage: 40.000,-- bzw. 40.000,50 (ohne Währungszeichen)
+  function amount(n) {
+    const str = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    return str.endsWith(',00') ? str.slice(0, -3) + ',--' : str;
+  }
   function invoiceHtml(inv) {
     const s = db.settings;
     const t = totals(inv);
-    const senderLine = [s.company, s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
-    const companyBlock = [s.owner && s.owner !== s.company ? s.owner : '', s.street, [s.zip, s.city].filter(Boolean).join(' '), s.country, '', s.phone && 'Tel. ' + s.phone, s.email, s.web]
-      .filter((x) => x !== undefined && x !== false && x !== null).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    const cityLine = [s.zip, s.city].filter(Boolean).join(' ');
+    const companyBlock = [s.company, s.owner, s.street, cityLine, s.phone && 'Tel.: ' + s.phone, s.email && 'E-Mail: ' + s.email, s.web]
+      .filter(Boolean).join('\n');
     const meta = [
-      ['Rechnungsnummer', inv.number],
+      inv.customerUid && ['Kunden UID-Nr.', inv.customerUid],
+      inv.customerNo && ['Kunden Nr.', inv.customerNo],
+      ['Rechnung Nr.', inv.number],
       ['Rechnungsdatum', dateFmt(inv.date)],
-      inv.service && ['Leistungsdatum', inv.service],
-      inv.customerNo && ['Kundennummer', inv.customerNo],
-      inv.customerUid && ['UID Kunde', inv.customerUid],
-      s.uid && ['Unsere UID', s.uid],
     ].filter(Boolean);
+    const addrLines = String(inv.address || '').split('\n');
+    const recipient = inv.address
+      ? `<strong>${esc(addrLines[0])}</strong>${addrLines.length > 1 ? '\n' + esc(addrLines.slice(1).join('\n')) : ''}`
+      : '<span style="color:#aaa">Rechnungsadresse</span>';
     const items = inv.items.filter((it) => String(it.desc).trim() || num(it.price));
+    const row = (it, i) => {
+      const lump = num(it.qty) === 1 && !String(it.unit || '').trim();
+      return `<tr>
+        <td class="c-pos">${esc(String(it.pos || '').trim() || (i + 1) + '.')}</td>
+        <td class="desc-text">${esc(it.desc)}</td>
+        <td class="r c-qty">${lump ? '' : esc(qtyFmt(num(it.qty)) + ' ' + (it.unit || ''))}</td>
+        <td class="r c-price">${lump ? '' : amount(num(it.price))}</td>
+        <td class="r c-total">${amount(round2(num(it.qty) * num(it.price)))}</td>
+      </tr>`;
+    };
+    const bankLines = [s.iban && ['IBAN:', s.iban], s.bic && ['BIC:', s.bic]].filter(Boolean);
     return `
       <div class="inv-head">
-        <div class="inv-logo">${s.logo ? `<img src="${s.logo}" alt="">` : `<strong style="font-size:15pt">${esc(s.company)}</strong>`}</div>
-        <div class="inv-company">${s.logo ? `<strong>${esc(s.company)}</strong>\n` : ''}${esc(companyBlock)}</div>
+        <div class="inv-logo">${s.logo ? `<img src="${s.logo}" alt="">` : `<span class="noimg">${esc(s.company)}</span>`}</div>
+        <div class="inv-company">${esc(companyBlock)}</div>
       </div>
       <div class="inv-addr-row">
-        <div>
-          <div class="inv-sender">${esc(senderLine)}</div>
-          <div class="inv-recipient">${esc(inv.address) || '<span style="color:#aaa">Rechnungsadresse</span>'}</div>
-        </div>
+        <div class="inv-recipient">${recipient}</div>
         <table class="inv-meta">${meta.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>
       </div>
-      <h1>Rechnung ${esc(inv.number)}</h1>
+      <div class="inv-title"><strong>${esc(inv.title || 'Rechnung')}${inv.subject ? ':' : ''}</strong>${inv.subject ? ' <span>' + esc(inv.subject) + '</span>' : ''}</div>
+      ${inv.service ? `<div class="inv-period">Leistungszeitraum: ${esc(inv.service)}</div>` : ''}
       ${inv.intro ? `<div class="inv-intro">${fillPlaceholders(inv.intro, inv)}</div>` : ''}
       <table class="inv-items">
-        <thead><tr><th style="width:8mm">Pos.</th><th>Beschreibung</th><th class="r">Menge</th><th class="r">Einzelpreis</th><th class="r">Gesamt</th></tr></thead>
-        <tbody>${items.map((it, i) => `
-          <tr>
-            <td>${i + 1}</td>
-            <td class="desc-text">${esc(it.desc)}</td>
-            <td class="r">${qtyFmt(num(it.qty))} ${esc(it.unit)}</td>
-            <td class="r">${money(num(it.price))}</td>
-            <td class="r">${money(round2(num(it.qty) * num(it.price)))}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-      <table class="inv-totals">
-        ${s.small ? '' : `<tr><td>Summe netto</td><td class="r">${money(t.net)}</td></tr>
-        <tr><td>zzgl. ${qtyFmt(t.rate)} % USt</td><td class="r">${money(t.tax)}</td></tr>`}
-        <tr class="grand"><td>Rechnungsbetrag</td><td class="r">${money(t.gross)}</td></tr>
+        <thead><tr><th class="c-pos">Pos.</th><th>Bezeichnung</th><th class="r c-qty">Menge</th><th class="r c-price">E. Preis</th><th class="r c-total">Gesamtpreis</th></tr></thead>
+        <tbody>${items.map(row).join('') || '<tr><td colspan="5">&nbsp;</td></tr>'}</tbody>
+        <tfoot>
+          <tr><td colspan="4">Summe Positionen</td><td class="r c-total">${amount(t.net)}</td></tr>
+          ${s.small ? '' : `<tr><td colspan="3"></td><td class="r"><span class="u">+ ${esc(qtyFmt(t.rate))}% MwSt.</span></td><td class="r c-total"><span class="u">${amount(t.tax)}</span></td></tr>`}
+          <tr class="gap"><td colspan="5"></td></tr>
+          <tr class="grand"><td colspan="4">Rechnungsbetrag</td><td class="r c-total">${amount(t.gross)}</td></tr>
+        </tfoot>
       </table>
       ${s.small ? `<div class="inv-notes">${esc(s.smallNote)}</div>` : ''}
       ${inv.notes ? `<div class="inv-notes">${fillPlaceholders(inv.notes, inv)}</div>` : ''}
       <div class="inv-footer">
-        <div>${esc([s.company, s.owner && s.owner !== s.company ? s.owner : '', s.street, [s.zip, s.city].filter(Boolean).join(' ')].filter(Boolean).join('\n'))}</div>
-        <div>${esc([s.phone && 'Tel. ' + s.phone, s.email, s.web, s.uid && 'UID: ' + s.uid, s.taxno && 'St.-Nr.: ' + s.taxno, s.register].filter(Boolean).join('\n'))}</div>
-        <div>${esc([s.bank, s.iban && 'IBAN: ' + s.iban, s.bic && 'BIC: ' + s.bic].filter(Boolean).join('\n'))}</div>
+        <div>${esc([s.company, s.owner, s.street, cityLine, s.phone && 'Tel.: ' + s.phone, s.email && 'E-Mail: ' + s.email].filter(Boolean).join('\n'))}</div>
+        <div class="bank">${s.bank ? `<div>${esc(s.bank)}</div>` : ''}${bankLines.map(([k, v]) => `<div>${k}</div><div>${esc(v)}</div>`).join('')}</div>
+        <div>${esc([s.uid && 'UID – Nr. ' + s.uid, s.taxno && 'St.-Nr.: ' + s.taxno, s.register].filter(Boolean).join('\n'))}</div>
       </div>`;
   }
 
@@ -633,7 +670,8 @@
 
   async function downloadPdf() {
     const el = $('invoice-doc');
-    const name = `Rechnung_${(current.number || 'ohne-Nummer').replace(/[^\w.-]+/g, '_')}.pdf`;
+    const name = `${(current.title || 'Rechnung').trim()}_${current.number || 'ohne-Nummer'}_${(current.address || '').split('\n')[0]}`
+      .replace(/[^\wäöüÄÖÜß.-]+/g, '_').replace(/_+$/, '') + '.pdf';
     if (typeof html2pdf === 'undefined') {
       toast('PDF-Bibliothek nicht geladen (offline?) – Druckdialog wird geöffnet');
       window.print(); return;
@@ -659,7 +697,7 @@
     $('archive-table').innerHTML = list.length
       ? '<tr><th>Nr.</th><th>Datum</th><th>Kunde</th><th class="num">Betrag</th><th></th></tr>' + list.map((inv) => `
         <tr>
-          <td>${esc(inv.number)}</td>
+          <td>${esc(inv.number)}<br><span class="muted">${esc(inv.title || 'Rechnung')}</span></td>
           <td>${dateFmt(inv.date)}</td>
           <td>${esc((inv.address || '').split('\n')[0])}</td>
           <td class="num">${money(inv.total || 0)}</td>
@@ -680,7 +718,7 @@
       newInvoice();
       Object.assign(current, {
         customerId: inv.customerId, address: inv.address, customerUid: inv.customerUid, customerNo: inv.customerNo,
-        items: JSON.parse(JSON.stringify(inv.items)), intro: inv.intro, notes: inv.notes,
+        items: JSON.parse(JSON.stringify(inv.items)), intro: inv.intro, notes: inv.notes, subject: inv.subject || '',
       });
       showView('invoice'); fillInvoiceForm();
     } else if (b.dataset.act === 'del') {
