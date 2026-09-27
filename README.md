@@ -30,6 +30,6 @@ Unter *Einstellungen → Datensicherung* kannst du ein Backup als JSON-Datei her
 
 Das Layout folgt der bisherigen Bitschnau-Rechnung. Festgelegt ist es in `index.html`: in der Funktion `invoiceHtml()` und in den CSS-Regeln unter `.invoice`. Das Logo liegt in `assets/logo.png` und ist zusätzlich in `assets/logo.js` eingebettet. Ein anderes Logo lässt sich in den Einstellungen hochladen.
 
-Schrift: Cambria (unter Windows vorinstalliert), sonst Caladea von Google Fonts bzw. Georgia.
+Maße, Schriftgrößen und Positionen sind aus der Word-Vorlage (RE 202636) übernommen. Schrift: Cambria (unter Windows vorinstalliert), sonst die maßgleiche Caladea (SIL OFL, in `assets/fonts.css` eingebettet).
 
 PDF-Erzeugung: [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) 0.10.1 (MIT), liegt in `vendor/`.

@@ -6,8 +6,7 @@
 <title>Rechnungstool</title>
 <script src="vendor/html2pdf.bundle.min.js"></script>
 <script src="assets/logo.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Caladea:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/fonts.css">
 <style>
   :root {
     --bg: #f4f5f7; --panel: #fff; --text: #1d2330; --muted: #6b7280;
@@ -71,44 +70,49 @@
   .preview-wrap { position: sticky; top: 16px; overflow: auto; background: #d9dce1; border-radius: 8px; padding: 16px; }
   .preview-scale { transform-origin: top left; }
 
-  /* ===== Rechnungsdokument (A4) nach Vorlage Tischlerei Bitschnau ===== */
-  .invoice { width: 210mm; min-height: 296mm; background: #fff; color: #111; padding: 16mm 11mm 38mm 18mm; font: 10.5pt/1.35 Cambria, Caladea, Georgia, "Times New Roman", serif; position: relative; }
-  .invoice .inv-head { display: flex; justify-content: space-between; align-items: flex-start; }
-  .invoice .inv-logo { width: 92mm; margin-left: 1.5mm; }
+  /* ===== Rechnungsdokument (A4) – Maße (pt) aus der Word-Vorlage der Tischlerei Bitschnau ===== */
+  .invoice { width: 210mm; min-height: 296mm; background: #fff; color: #000; position: relative;
+    padding: 258.6pt 29pt 110pt 49.7pt; font: 10pt/normal Cambria, Caladea, Georgia, serif; }
+  .invoice .abs { position: absolute; }
+  .invoice .inv-logo { left: 49.85pt; top: 43.85pt; width: 272.45pt; }
   .invoice .inv-logo img { width: 100%; display: block; }
   .invoice .inv-logo .noimg { font-size: 20pt; font-weight: 700; }
-  .invoice .inv-company { width: 64mm; white-space: pre-line; font-size: 10pt; line-height: 1.3; }
-  .invoice .inv-addr-row { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 22mm; min-height: 24mm; }
-  .invoice .inv-recipient { white-space: pre-line; font-size: 11pt; line-height: 1.3; padding-left: 1mm; }
-  .invoice .inv-recipient strong { font-weight: 700; }
-  .invoice .inv-meta { border-collapse: collapse; font-size: 11pt; width: 78mm; }
-  .invoice .inv-meta td { padding: 0 0 0.3mm; }
-  .invoice .inv-meta td:last-child { width: 28mm; white-space: nowrap; }
-  .invoice .inv-title { border: 0.6pt solid #111; border-left-width: 1.6pt; padding: 1.2mm 2mm 1mm; margin-top: 8mm; }
+  .invoice .inv-company { left: 381.8pt; top: 43pt; white-space: pre; }
+  .invoice .inv-recipient { left: 49.7pt; top: 165.5pt; width: 285pt; font-size: 11pt; white-space: pre-line; }
+  .invoice .inv-meta { left: 340.4pt; top: 165.5pt; font-size: 11pt; }
+  .invoice .inv-meta div { display: grid; grid-template-columns: 141.7pt auto; white-space: nowrap; }
+  .invoice .inv-title { margin-left: -5.9pt; width: 522.2pt; border: 0.48pt solid #000; height: 19.2pt; padding-left: 5.4pt; line-height: 17.5pt; white-space: nowrap; overflow: hidden; }
   .invoice .inv-title strong { font-size: 14pt; }
   .invoice .inv-title span { font-size: 12pt; }
-  .invoice .inv-period { margin: 3.5mm 0 0 1mm; }
-  .invoice .inv-intro { margin: 2mm 0 0 1mm; white-space: pre-line; }
-  .invoice table.inv-items { width: 100%; border-collapse: collapse; margin-top: 5mm; }
-  .invoice table.inv-items th { font-weight: 700; text-align: left; padding: 1mm 1mm 1.2mm; }
-  .invoice table.inv-items thead tr, .invoice table.inv-items tfoot tr.grand { background: #e3e3e3; }
-  .invoice table.inv-items td { padding: 1.6mm 1mm 1.2mm; vertical-align: top; }
-  .invoice table.inv-items tr { page-break-inside: avoid; }
-  .invoice table.inv-items tbody tr:last-child td { border-bottom: 0.9pt solid #111; }
-  .invoice table.inv-items .c-pos { width: 14mm; }
-  .invoice table.inv-items .c-qty { width: 22mm; }
-  .invoice table.inv-items .c-price { width: 23mm; }
-  .invoice table.inv-items .c-total { width: 29mm; padding-right: 5mm; }
-  .invoice .r, .invoice table.inv-items th.r { text-align: right; white-space: nowrap; }
-  .invoice .desc-text { white-space: pre-line; }
-  .invoice table.inv-items tfoot td { padding-top: 1.2mm; padding-bottom: 0.4mm; }
-  .invoice table.inv-items tfoot .u { text-decoration: underline; }
-  .invoice table.inv-items tfoot tr.grand td { font-weight: 700; padding-top: 1mm; padding-bottom: 1.2mm; }
-  .invoice table.inv-items tfoot tr.gap td { padding: 0.8mm; }
-  .invoice .inv-notes { margin: 8mm 0 0 1mm; white-space: pre-line; }
-  .invoice .inv-footer { position: absolute; left: 16mm; right: 11mm; bottom: 12mm; font-size: 9pt; line-height: 1.3; display: grid; grid-template-columns: 75.5mm 69mm 1fr; white-space: pre-line; }
-  .invoice .inv-footer .bank { display: grid; grid-template-columns: auto 1fr; column-gap: 2.5mm; }
-  .invoice .inv-footer .bank div:first-child { grid-column: 1 / -1; }
+  .invoice .inv-period { margin-top: 11.7pt; }
+  .invoice .inv-intro { margin-top: 5.9pt; white-space: pre-line; }
+  .invoice .inv-period + .inv-intro { margin-top: 7pt; }
+  /* Positionen: Pos. | Bezeichnung | Menge | E. Preis | Gesamtpreis */
+  .invoice .inv-row { display: grid; grid-template-columns: 35.4pt 283.6pt 32.6pt 24.1pt 36.3pt 20.4pt 53.5pt; align-items: start; }
+  .invoice .inv-row > * { min-width: 0; }
+  .invoice .inv-row .qty { grid-column: 3; text-align: right; white-space: nowrap; }
+  .invoice .inv-row .price { grid-column: 5; text-align: right; white-space: nowrap; }
+  .invoice .inv-row .total { grid-column: 7; text-align: right; white-space: nowrap; }
+  .invoice .inv-row .desc { white-space: pre-line; padding-right: 6pt; }
+  .invoice .inv-thead { margin-top: 12.9pt; width: 490.4pt; background: #c0c0c0; font-weight: 700; height: 11.7pt; overflow: visible; }
+  .invoice .inv-thead .h-qty { grid-column: 3 / span 2; }
+  .invoice .inv-thead .h-price { grid-column: 5 / span 2; }
+  .invoice .inv-thead .h-total { grid-column: 7; white-space: nowrap; }
+  .invoice .inv-items { padding-top: 11.7pt; }
+  .invoice .inv-items .inv-row { page-break-inside: avoid; }
+  .invoice .inv-items .inv-row + .inv-row { margin-top: 5.9pt; }
+  .invoice .inv-rule { margin: 2.8pt 0 0 -1.5pt; width: 513.4pt; border-top: 0.7pt solid #000; }
+  .invoice .inv-sum { margin-top: 6.8pt; }
+  .invoice .inv-tax { margin-top: 1.9pt; position: relative; }
+  .invoice .inv-tax .label { grid-column: 5 / span 2; white-space: nowrap; }
+  .invoice .inv-tax::after { content: ""; position: absolute; left: 375.7pt; width: 108pt; top: 10pt; border-top: 0.6pt solid #000; }
+  .invoice .inv-grand { margin-top: 5.8pt; width: 484.2pt; background: #c0c0c0; font-weight: 700; height: 11.7pt; }
+  .invoice .inv-grand .total { margin-right: -2pt; }
+  .invoice .inv-notes { margin-top: 17.6pt; white-space: pre-line; }
+  .invoice .inv-footer { left: 49.7pt; bottom: 32pt; font-size: 9pt; display: grid; grid-template-columns: 212.7pt 198.5pt auto; }
+  .invoice .inv-footer > div { white-space: pre; }
+  .invoice .inv-footer .bank { display: grid; grid-template-columns: 28.3pt auto; align-content: start; }
+  .invoice .inv-footer .bank .full { grid-column: 1 / -1; }
 
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 10px 16px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
   .toast.show { opacity: 1; }
@@ -574,7 +578,7 @@
     const s = db.settings;
     const t = totals(inv);
     const cityLine = [s.zip, s.city].filter(Boolean).join(' ');
-    const companyBlock = [s.company, s.owner, s.street, cityLine, s.phone && 'Tel.: ' + s.phone, s.email && 'E-Mail: ' + s.email, s.web]
+    const contact = [s.company, s.owner, s.street, cityLine, s.phone && 'Tel.: ' + s.phone, s.email && 'E-Mail: ' + s.email]
       .filter(Boolean).join('\n');
     const meta = [
       inv.customerUid && ['Kunden UID-Nr.', inv.customerUid],
@@ -589,42 +593,38 @@
     const items = inv.items.filter((it) => String(it.desc).trim() || num(it.price));
     const row = (it, i) => {
       const lump = num(it.qty) === 1 && !String(it.unit || '').trim();
-      return `<tr>
-        <td class="c-pos">${esc(String(it.pos || '').trim() || (i + 1) + '.')}</td>
-        <td class="desc-text">${esc(it.desc)}</td>
-        <td class="r c-qty">${lump ? '' : esc(qtyFmt(num(it.qty)) + ' ' + (it.unit || ''))}</td>
-        <td class="r c-price">${lump ? '' : amount(num(it.price))}</td>
-        <td class="r c-total">${amount(round2(num(it.qty) * num(it.price)))}</td>
-      </tr>`;
+      return `<div class="inv-row">
+        <div>${esc(String(it.pos || '').trim() || (i + 1) + '.')}</div>
+        <div class="desc">${esc(it.desc)}</div>
+        <div class="qty">${lump ? '' : esc(qtyFmt(num(it.qty)) + ' ' + (it.unit || ''))}</div>
+        <div class="price">${lump ? '' : amount(num(it.price))}</div>
+        <div class="total">${amount(round2(num(it.qty) * num(it.price)))}</div>
+      </div>`;
     };
-    const bankLines = [s.iban && ['IBAN:', s.iban], s.bic && ['BIC:', s.bic]].filter(Boolean);
+    const bank = [s.bank && `<div class="full">${esc(s.bank)}</div>`,
+      s.iban && `<div>IBAN:</div><div>${esc(s.iban)}</div>`,
+      s.bic && `<div>BIC:</div><div>${esc(s.bic)}</div>`].filter(Boolean).join('');
     return `
-      <div class="inv-head">
-        <div class="inv-logo">${s.logo ? `<img src="${s.logo}" alt="">` : `<span class="noimg">${esc(s.company)}</span>`}</div>
-        <div class="inv-company">${esc(companyBlock)}</div>
-      </div>
-      <div class="inv-addr-row">
-        <div class="inv-recipient">${recipient}</div>
-        <table class="inv-meta">${meta.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('')}</table>
-      </div>
-      <div class="inv-title"><strong>${esc(inv.title || 'Rechnung')}${inv.subject ? ':' : ''}</strong>${inv.subject ? ' <span>' + esc(inv.subject) + '</span>' : ''}</div>
+      <div class="abs inv-logo">${s.logo ? `<img src="${s.logo}" alt="">` : `<span class="noimg">${esc(s.company)}</span>`}</div>
+      <div class="abs inv-company">${esc(contact)}</div>
+      <div class="abs inv-recipient">${recipient}</div>
+      <div class="abs inv-meta">${meta.map(([k, v]) => `<div><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}</div>
+
+      <div class="inv-title"><strong>${esc(inv.title || 'Rechnung')}${inv.subject ? ': ' : ''}</strong>${inv.subject ? '<span>' + esc(inv.subject) + '</span>' : ''}</div>
       ${inv.service ? `<div class="inv-period">Leistungszeitraum: ${esc(inv.service)}</div>` : ''}
-      ${inv.intro ? `<div class="inv-intro">${fillPlaceholders(inv.intro, inv)}</div>` : ''}
-      <table class="inv-items">
-        <thead><tr><th class="c-pos">Pos.</th><th>Bezeichnung</th><th class="r c-qty">Menge</th><th class="r c-price">E. Preis</th><th class="r c-total">Gesamtpreis</th></tr></thead>
-        <tbody>${items.map(row).join('') || '<tr><td colspan="5">&nbsp;</td></tr>'}</tbody>
-        <tfoot>
-          <tr><td colspan="4">Summe Positionen</td><td class="r c-total">${amount(t.net)}</td></tr>
-          ${s.small ? '' : `<tr><td colspan="3"></td><td class="r"><span class="u">+ ${esc(qtyFmt(t.rate))}% MwSt.</span></td><td class="r c-total"><span class="u">${amount(t.tax)}</span></td></tr>`}
-          <tr class="gap"><td colspan="5"></td></tr>
-          <tr class="grand"><td colspan="4">Rechnungsbetrag</td><td class="r c-total">${amount(t.gross)}</td></tr>
-        </tfoot>
-      </table>
+      ${inv.intro ? `<div class="${inv.service ? '' : 'inv-period '}inv-intro">${fillPlaceholders(inv.intro, inv)}</div>` : ''}
+      <div class="inv-row inv-thead"><div>Pos.</div><div>Bezeichnung</div><div class="h-qty">Menge</div><div class="h-price">E. Preis</div><div class="h-total">Gesamtpreis</div></div>
+      <div class="inv-items">${items.map(row).join('') || '<div class="inv-row"><div>&nbsp;</div></div>'}</div>
+      <div class="inv-rule"></div>
+      <div class="inv-row inv-sum"><div style="grid-column:1/3">Summe Positionen</div><div class="total">${amount(t.net)}</div></div>
+      ${s.small ? '' : `<div class="inv-row inv-tax"><div class="label">+ ${esc(qtyFmt(t.rate))}% MwSt.</div><div class="total">${amount(t.tax)}</div></div>`}
+      <div class="inv-row inv-grand"><div style="grid-column:1/3">Rechnungsbetrag</div><div class="total">${amount(t.gross)}</div></div>
       ${s.small ? `<div class="inv-notes">${esc(s.smallNote)}</div>` : ''}
       ${inv.notes ? `<div class="inv-notes">${fillPlaceholders(inv.notes, inv)}</div>` : ''}
-      <div class="inv-footer">
-        <div>${esc([s.company, s.owner, s.street, cityLine, s.phone && 'Tel.: ' + s.phone, s.email && 'E-Mail: ' + s.email].filter(Boolean).join('\n'))}</div>
-        <div class="bank">${s.bank ? `<div>${esc(s.bank)}</div>` : ''}${bankLines.map(([k, v]) => `<div>${k}</div><div>${esc(v)}</div>`).join('')}</div>
+
+      <div class="abs inv-footer">
+        <div>${esc(contact)}</div>
+        <div class="bank">${bank}</div>
         <div>${esc([s.uid && 'UID – Nr. ' + s.uid, s.taxno && 'St.-Nr.: ' + s.taxno, s.register].filter(Boolean).join('\n'))}</div>
       </div>`;
   }
